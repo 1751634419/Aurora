@@ -1,6 +1,3 @@
-use std::sync::Arc;
-use std::any::Any;
-
 pub struct Module {
     pub version: u32,
     pub custom_sections: CustomSection,
@@ -18,12 +15,12 @@ pub struct Module {
 }
 
 pub struct CustomSection {
-    pub name: str,
+    pub name: String,
     pub data: Vec<u8>
 }
 
 // TODO
-pub type Expression = Option<Any>;
+pub type Expression = Box<Vec<u8>>;
 
 pub type TypeIndex = u32;
 pub type FunctionIndex = u32;
@@ -34,45 +31,46 @@ pub type LocalIndex = u32;
 pub type LabelIndex = u32;
 
 pub enum VariableType {
-    I32 = 0x7F as u8,
-    I64 = 0x7E as u8,
-    F32 = 0x7D as u8,
-    F64 = 0x7C as u8
+    I32, I64, F32, F64
 }
 
 pub struct FunctionType {
+    pub tag: u8,
     pub parameter_types: Vec<VariableType>,
     pub result_types: Vec<VariableType>
 }
 
 pub struct Import {
-    pub module: str,
-    pub name: str,
+    pub module: String,
+    pub name: String,
     pub description: ImportDescription
 }
 
 pub enum ImportTag {
-    Function = 0,
-    Table = 1,
-    Memory = 2,
-    Global = 3
+    Function,
+    Table,
+    Memory,
+    Global
 }
 
 pub struct ImportDescription {
     pub tag: ImportTag,
     pub function_type: Option<TypeIndex>,
-    pub table: Option<TableIndex>,
-    pub memory: Option<MemoryIndex>,
-    pub global: Option<GlobalIndex>
+    pub table: Option<TableType>,
+    pub memory: Option<MemoryType>,
+    pub global: Option<GlobalType>
 }
 
 pub struct Limits {
     pub tag: u8,
     pub min: u32,
-    pub max: u32
+    pub max: Option<u32>
 }
 
-pub type TableType = Limits;
+pub struct TableType {
+    pub Element_Type: u8,
+    pub Limits: Limits
+}
 
 pub type MemoryType = Limits;
 
@@ -87,7 +85,7 @@ pub struct GlobalType {
 }
 
 pub struct Export {
-    pub name: str,
+    pub name: String,
     pub description: ExportDescription
 }
 
