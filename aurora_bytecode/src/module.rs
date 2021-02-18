@@ -1,6 +1,6 @@
 pub struct Module {
     pub version: u32,
-    pub custom_sections: CustomSection,
+    pub custom_sections: Vec<CustomSection>,
     pub type_section: Vec<FunctionType>,
     pub import_section: Vec<Import>,
     pub func_section: Vec<TypeIndex>,
@@ -95,10 +95,10 @@ pub struct ExportDescription {
 }
 
 pub enum ExportTag {
-    Function = 0,
-    Table = 1,
-    Memory = 2,
-    Global = 3
+    Function,
+    Table,
+    Memory,
+    Global
 }
 
 pub struct Element {

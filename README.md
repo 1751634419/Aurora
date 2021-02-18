@@ -13,7 +13,8 @@ An unofficial implementation of local virtual machine for WebAssembly in Rust.
 #### NOT AVAILABLE YET
 
 ## Ongoing Events
-1. Completing the parser for ***.wasm***
+1. Completing the parser for ***.wasm***(Halfway: the instruction reader isn't ready yet)
+2. Implementing the instructions
 
 ## Licensing
 The source code is licensed under GPL v3. It's available [here](/LICENSE).

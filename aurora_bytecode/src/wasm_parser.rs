@@ -1,7 +1,6 @@
 use std::convert::TryInto;
-use crate::module::{Module, CustomSection, FunctionType, VariableType, Import, ImportDescription, TableType, Limits, GlobalType};
+use crate::module::{Module, CustomSection, FunctionType, VariableType, Import, ImportDescription, TableType, Limits, GlobalType, MemoryType, Global, Expression, ExportDescription, Export, ExportTag, Element, Code, Locals, Data};
 use std::string::FromUtf8Error;
-use crate::module::ImportTag::{Function, Global, Memory, Table};
 
 // parser supporting LEB-128
 // see https://en.wikipedia.org/wiki/LEB128#Decode_signed_integer for details
@@ -225,6 +224,11 @@ const IMPORT_TAG_TABLE: u8 = 1;
 const IMPORT_TAG_MEMORY: u8 = 2;
 const IMPORT_TAG_GLOBAL: u8 = 3;
 
+const EXPORT_TAG_FUNCTION: u8 = 0;
+const EXPORT_TAG_TABLE: u8 = 1;
+const EXPORT_TAG_MEMORY: u8 = 2;
+const EXPORT_TAG_GLOBAL: u8 = 3;
+
 // wasm reading
 impl WasmReader {
     pub fn read_variable_type(&mut self) -> VariableType {
@@ -325,7 +329,7 @@ impl WasmReader {
         match desc {
             IMPORT_TAG_FUNCTION => {
                 return ImportDescription {
-                    tag: Function,
+                    tag: crate::module::ImportTag::Function,
                     function_type: Some(self.read_var_u32()),
                     table: None,
                     memory: None,
@@ -335,7 +339,7 @@ impl WasmReader {
 
             IMPORT_TAG_TABLE => {
                 return ImportDescription {
-                    tag: Table,
+                    tag: crate::module::ImportTag::Table,
                     function_type: None,
                     table: Some(self.read_table_type()),
                     memory: None,
@@ -345,7 +349,7 @@ impl WasmReader {
 
             IMPORT_TAG_MEMORY => {
                 return ImportDescription {
-                    tag: Memory,
+                    tag: crate::module::ImportTag::Memory,
                     function_type: None,
                     table: None,
                     memory: Some(self.read_limits()),
@@ -355,7 +359,7 @@ impl WasmReader {
 
             IMPORT_TAG_GLOBAL => {
                 return ImportDescription {
-                    tag: Global,
+                    tag: crate::module::ImportTag::Global,
                     function_type: None,
                     table: None,
                     memory: None,
@@ -388,6 +392,186 @@ impl WasmReader {
         return vec;
     }
 
+    pub fn read_export_description(&mut self) -> ExportDescription {
+        let mut tag: ExportTag;
+        
+        match self.read_u8() {
+            EXPORT_TAG_FUNCTION => tag = crate::module::ExportTag::Function,
+            EXPORT_TAG_GLOBAL => tag = crate::module::ExportTag::Global,
+            EXPORT_TAG_MEMORY => tag = crate::module::ExportTag::Memory,
+            EXPORT_TAG_TABLE => tag = crate::module::ExportTag::Table,
+            _ => panic!("Unmalformed export tag")
+        }
+        
+        return ExportDescription {
+            tag,
+            index: self.read_var_u32()
+        }
+    }
+
+    pub fn read_export(&mut self) -> Export {
+        return Export {
+            name: self.read_name().unwrap(),
+            description: self.read_export_description()
+        };
+    }
+
+    pub fn read_export_section(&mut self) -> Vec<Export> {
+        let mut vec: Vec<Export> = Vec::new();
+        let size = self.read_var_u32();
+
+        for i in 0..size {
+            vec.push(self.read_export());
+        }
+
+        return vec;
+    }
+
+    pub fn read_indices(&mut self) -> Vec<u32> {
+        let mut vec: Vec<u32> = Vec::new();
+        let size = self.read_var_u32();
+
+        for i in 0..size {
+            vec.push(self.read_var_u32());
+        }
+
+        return vec;
+    }
+
+    pub fn read_table_section(&mut self) -> Vec<TableType> {
+        let mut vec: Vec<TableType> = Vec::new();
+        let size = self.read_var_u32();
+
+        for i in 0..size {
+            vec.push(self.read_table_type());
+        }
+
+        return vec;
+    }
+
+    pub fn read_memory_section(&mut self) -> Vec<MemoryType> {
+        let mut vec: Vec<MemoryType> = Vec::new();
+        let size = self.read_var_u32();
+
+        for i in 0..size {
+            vec.push(self.read_limits());
+        }
+
+        return vec;
+    }
+
+    pub fn read_expression(&mut self) -> Expression {
+        // TODO The instruction still stay unimplemented.
+
+        loop {
+            let n = self.read_u8();
+
+            if n == 0x05 || n == 0x0B {
+                break;
+            }
+        }
+        return Box::new(Vec::new());
+    }
+
+    pub fn read_global_section(&mut self) -> Vec<Global> {
+        let mut vec: Vec<Global> = Vec::new();
+        let size = self.read_var_u32();
+
+        for i in 0..size {
+            vec.push(Global {
+                global_type: self.read_global_type(),
+                default: self.read_expression()
+            });
+        }
+
+        return vec;
+    }
+
+    pub fn read_start_section(&mut self) -> u32 {
+        return self.read_var_u32();
+    }
+
+    pub fn read_element(&mut self) -> Element {
+        return Element {
+            table: self.read_var_u32(),
+            offset: self.read_expression(),
+            default: self.read_indices()
+        };
+    }
+
+    pub fn read_element_section(&mut self) -> Vec<Element> {
+        let mut vec: Vec<Element> = Vec::new();
+        let size = self.read_var_u32();
+
+        for i in 0..size {
+            vec.push(self.read_element());
+        }
+
+        return vec;
+    }
+
+    pub fn read_locals(&mut self) -> Locals {
+        return Locals {
+            count: self.read_var_u32(),
+            local_type: self.read_variable_type()
+        }
+    }
+
+    pub fn read_locals_vector(&mut self) -> Vec<Locals> {
+        let mut vec: Vec<Locals> = Vec::new();
+        let size = self.read_var_u32();
+
+        for i in 0..size {
+            vec.push(self.read_locals());
+        }
+
+        return vec;
+    }
+    
+    pub fn read_code(&mut self) -> Code {
+        let n = self.read_var_u32() as usize;
+        let remaining = self.remaining();
+        let code = Code {
+            locals: self.read_locals_vector(),
+            expression: self.read_expression()
+        };
+        if self.remaining() + n != remaining {
+            panic!("Invalid code")
+        }
+
+        return code;
+    }
+
+    pub fn read_code_section(&mut self) -> Vec<Code> {
+        let mut vec: Vec<Code> = Vec::new();
+        let size = self.read_var_u32();
+
+        for i in 0..size {
+            vec.push(self.read_code());
+        }
+
+        return vec;
+    }
+
+    pub fn read_data_section(&mut self) -> Vec<Data> {
+        let mut vec: Vec<Data> = Vec::new();
+        let size = self.read_var_u32();
+
+        for i in 0..size {
+            vec.push(self.read_data_instance());
+        }
+
+        return vec;
+    }
+
+    pub fn read_data_instance(&mut self) -> Data {
+        return Data {
+            memory: self.read_var_u32(),
+            offset: self.read_expression(),
+            default: self.read_bytes()
+        };
+    }
+
     pub fn read_module(&mut self) -> Result<Module, String> {
         let magic = self.read_u32();
         if magic != 0x6D736100 { // magic number: '\0asm'
@@ -399,8 +583,18 @@ impl WasmReader {
         }
 
         let mut custom_secs: Vec<CustomSection> = Vec::new();
-        let mut type_secs: Vec<FunctionType>;
-        let mut import_secs: Vec<Import>;
+        let mut type_secs: Vec<FunctionType> = Vec::new();
+        let mut import_secs: Vec<Import> = Vec::new();
+        let mut function_secs: Vec<u32> = Vec::new();
+        let mut table_secs: Vec<TableType> = Vec::new();
+        let mut memory_secs: Vec<MemoryType> = Vec::new();
+        let mut global_secs: Vec<Global> = Vec::new();
+        let mut export_secs: Vec<Export> = Vec::new();
+        let mut start_sec: u32 = 0;
+        let mut element_secs: Vec<Element> = Vec::new();
+        let mut code_secs: Vec<Code> = Vec::new();
+        let mut data_secs: Vec<Data> = Vec::new();
+
         // read the sections
         let mut prev_sec_id = 0 as u8;
         while self.remaining() > 0 {
@@ -427,6 +621,33 @@ impl WasmReader {
                 SECTION_IMPORT_ID => {
                     import_secs = self.read_import_section();
                 }
+                SECTION_FUNCTION_ID => {
+                    function_secs = self.read_indices();
+                }
+                SECTION_TABLE_ID => {
+                    table_secs = self.read_table_section();
+                }
+                SECTION_MEMORY_ID => {
+                    memory_secs = self.read_memory_section();
+                }
+                SECTION_GLOBAL_ID => {
+                    global_secs = self.read_global_section();
+                }
+                SECTION_EXPORT_ID => {
+                    export_secs = self.read_export_section();
+                }
+                SECTION_START_ID => {
+                    start_sec = self.read_start_section();
+                }
+                SECTION_ELEMENT_ID => {
+                    element_secs = self.read_element_section();
+                }
+                SECTION_CODE_ID => {
+                    code_secs = self.read_code_section();
+                }
+                SECTION_DATA_ID => {
+                    data_secs = self.read_data_section();
+                }
 
                 _ => {
                     return Err("Unknown section type".to_string());
@@ -437,6 +658,21 @@ impl WasmReader {
             }
         }
 
-        return Err("Passed so far".to_string());
+        let module = Module {
+            version,
+            custom_sections: custom_secs,
+            type_section: type_secs,
+            import_section: import_secs,
+            func_section: function_secs,
+            table_section: table_secs,
+            memory_section: memory_secs,
+            global_section: global_secs,
+            export_section: export_secs,
+            start_section: start_sec,
+            element_section: element_secs,
+            code_section: code_secs,
+            data_section: data_secs
+        };
+        return Ok(module);
     }
 }
