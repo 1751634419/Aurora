@@ -1,5 +1,5 @@
 [package]
-name = "aurora_vm"
+name = "aurora"
 version = "0.1.0"
 authors = ["SeptFox <1751634419@qq.com>"]
 edition = "2018"

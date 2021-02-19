@@ -12,7 +12,7 @@ An unofficial implementation of local virtual machine for WebAssembly in Rust.
 
 #### NOT AVAILABLE YET
 
-## Ongoing Events
+## Current Progress
 1. Completing the parser for ***.wasm***(Halfway: the instruction reader isn't ready yet)
 2. Implementing the instructions
 

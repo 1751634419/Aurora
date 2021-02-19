@@ -1,3 +1,5 @@
+use crate::inst::{Instruction, Expression};
+
 pub struct Module {
     pub version: u32,
     pub custom_sections: Vec<CustomSection>,
@@ -19,9 +21,6 @@ pub struct CustomSection {
     pub data: Vec<u8>
 }
 
-// TODO
-pub type Expression = Box<Vec<u8>>;
-
 pub type TypeIndex = u32;
 pub type FunctionIndex = u32;
 pub type TableIndex = u32;
@@ -29,6 +28,8 @@ pub type MemoryIndex = u32;
 pub type GlobalIndex = u32;
 pub type LocalIndex = u32;
 pub type LabelIndex = u32;
+
+pub type BlockType = i32;
 
 pub enum VariableType {
     I32, I64, F32, F64
@@ -68,8 +69,8 @@ pub struct Limits {
 }
 
 pub struct TableType {
-    pub Element_Type: u8,
-    pub Limits: Limits
+    pub element_type: u8,
+    pub limits: Limits
 }
 
 pub type MemoryType = Limits;

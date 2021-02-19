@@ -1,5 +1,5 @@
 pub mod wasm_parser;
-pub mod module;
+pub mod inst_parser;
 
 #[cfg(test)]
 mod tests {

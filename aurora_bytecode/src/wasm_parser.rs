@@ -1,5 +1,5 @@
 use std::convert::TryInto;
-use crate::module::{Module, CustomSection, FunctionType, VariableType, Import, ImportDescription, TableType, Limits, GlobalType, MemoryType, Global, Expression, ExportDescription, Export, ExportTag, Element, Code, Locals, Data};
+use aurora_core::module::{Module, CustomSection, FunctionType, VariableType, Import, ImportDescription, TableType, Limits, GlobalType, MemoryType, Global, ExportDescription, Export, ExportTag, Element, Code, Locals, Data};
 use std::string::FromUtf8Error;
 
 // parser supporting LEB-128
@@ -214,10 +214,10 @@ const SECTION_ELEMENT_ID : u8 = 9;
 const SECTION_CODE_ID : u8 = 10;
 const SECTION_DATA_ID : u8 = 11;
 
-const Type_I32: u8 = 0x7F;
-const Type_I64: u8 = 0x7E;
-const Type_F32: u8 = 0x7D;
-const Type_F64: u8 = 0x7C;
+const TYPE_I32: u8 = 0x7F;
+const TYPE_I64: u8 = 0x7E;
+const TYPE_F32: u8 = 0x7D;
+const TYPE_F64: u8 = 0x7C;
 
 const IMPORT_TAG_FUNCTION: u8 = 0;
 const IMPORT_TAG_TABLE: u8 = 1;
@@ -235,16 +235,16 @@ impl WasmReader {
         let v = self.read_u8();
 
         match v {
-            Type_I32 => {
+            TYPE_I32 => {
                 return VariableType::I32;
             }
-            Type_I64 => {
+            TYPE_I64 => {
                 return VariableType::I64;
             }
-            Type_F32 => {
+            TYPE_F32 => {
                 return VariableType::F32;
             }
-            Type_F64 => {
+            TYPE_F64 => {
                 return VariableType::F64;
             }
 
@@ -311,8 +311,8 @@ impl WasmReader {
 
     pub fn read_table_type(&mut self) -> TableType {
         return TableType {
-            Element_Type: self.read_u8(),
-            Limits: self.read_limits()
+            element_type: self.read_u8(),
+            limits: self.read_limits()
         };
     }
 
@@ -329,7 +329,7 @@ impl WasmReader {
         match desc {
             IMPORT_TAG_FUNCTION => {
                 return ImportDescription {
-                    tag: crate::module::ImportTag::Function,
+                    tag: aurora_core::module::ImportTag::Function,
                     function_type: Some(self.read_var_u32()),
                     table: None,
                     memory: None,
@@ -339,7 +339,7 @@ impl WasmReader {
 
             IMPORT_TAG_TABLE => {
                 return ImportDescription {
-                    tag: crate::module::ImportTag::Table,
+                    tag: aurora_core::module::ImportTag::Table,
                     function_type: None,
                     table: Some(self.read_table_type()),
                     memory: None,
@@ -349,7 +349,7 @@ impl WasmReader {
 
             IMPORT_TAG_MEMORY => {
                 return ImportDescription {
-                    tag: crate::module::ImportTag::Memory,
+                    tag: aurora_core::module::ImportTag::Memory,
                     function_type: None,
                     table: None,
                     memory: Some(self.read_limits()),
@@ -359,7 +359,7 @@ impl WasmReader {
 
             IMPORT_TAG_GLOBAL => {
                 return ImportDescription {
-                    tag: crate::module::ImportTag::Global,
+                    tag: aurora_core::module::ImportTag::Global,
                     function_type: None,
                     table: None,
                     memory: None,
@@ -396,10 +396,10 @@ impl WasmReader {
         let mut tag: ExportTag;
         
         match self.read_u8() {
-            EXPORT_TAG_FUNCTION => tag = crate::module::ExportTag::Function,
-            EXPORT_TAG_GLOBAL => tag = crate::module::ExportTag::Global,
-            EXPORT_TAG_MEMORY => tag = crate::module::ExportTag::Memory,
-            EXPORT_TAG_TABLE => tag = crate::module::ExportTag::Table,
+            EXPORT_TAG_FUNCTION => tag = aurora_core::module::ExportTag::Function,
+            EXPORT_TAG_GLOBAL => tag = aurora_core::module::ExportTag::Global,
+            EXPORT_TAG_MEMORY => tag = aurora_core::module::ExportTag::Memory,
+            EXPORT_TAG_TABLE => tag = aurora_core::module::ExportTag::Table,
             _ => panic!("Unmalformed export tag")
         }
         
@@ -458,19 +458,6 @@ impl WasmReader {
         }
 
         return vec;
-    }
-
-    pub fn read_expression(&mut self) -> Expression {
-        // TODO The instruction still stay unimplemented.
-
-        loop {
-            let n = self.read_u8();
-
-            if n == 0x05 || n == 0x0B {
-                break;
-            }
-        }
-        return Box::new(Vec::new());
     }
 
     pub fn read_global_section(&mut self) -> Vec<Global> {
