@@ -1,29 +1,32 @@
 use crate::wasm_parser::WasmReader;
-use aurora_core::inst::Expression;
-use aurora_core::inst::Instruction;
+use aurora_core::instr::inst::{Expression, BlockArguments, IfArguments, BrTableArguments};
+use aurora_core::instr::inst::Instruction;
+use aurora_core::instr::inst_control::{UnreachableInst, NopInst, BlockInst, LoopInst, IfInst, BrInst, BrIfInst, BrTableInst, ReturnInst, CallInst, CallIndirectInst};
+use aurora_core::module::BlockType;
+use aurora_core::instr::inst_parametric::{DropInst, SelectInst};
 
 // WASM BYTECODE
 const UNREACHABLE: u8 = 0x00;
 const NOP: u8 = 0x01;
-const BLOCK: u8 = 0x02;
-const LOOP: u8 = 0x03;
-const IF: u8 = 0x04;
+const BLOCK: u8 = 0x02; // BlockArgs
+const LOOP: u8 = 0x03; // BlockArgs
+const IF: u8 = 0x04; // IfArgs
 const ELSE_: u8 = 05;
 const END_: u8 = 0x0B;
-const BR: u8 = 0x0C;
-const BR_IF: u8 = 0x0D;
-const BR_TABLE: u8 = 0x0E;
+const BR: u8 = 0x0C; // label_idx(VarU32)
+const BR_IF: u8 = 0x0D; // label_idx(VarU32)
+const BR_TABLE: u8 = 0x0E; // BrTableArgs
 const RETURN: u8 = 0x0F;
-const CALL: u8 = 0x10;
-const CALL_INDIRECT: u8 = 0x11;
+const CALL: u8 = 0x10; // func_idx(VarU32)
+const CALL_INDIRECT: u8 = 0x11; // CallIndirectArgs
 const DROP: u8 = 0x1A;
 const SELECT: u8 = 0x1B;
-const LOCAL_GET: u8 = 0x20;
-const LOCAL_SET: u8 = 0x21;
-const LOCAL_TEE: u8 = 0x22;
-const GLOBAL_GET: u8 = 0x23;
-const GLOBAL_SET: u8 = 0x24;
-const I32_LOAD: u8 = 0x28;
+const LOCAL_GET: u8 = 0x20; // local_idx(VarU32)
+const LOCAL_SET: u8 = 0x21; // local_idx(VarU32)
+const LOCAL_TEE: u8 = 0x22; // local_idx(VarU32)
+const GLOBAL_GET: u8 = 0x23; // global_idx(VarU32)
+const GLOBAL_SET: u8 = 0x24; // global_idx(VarU32)
+const I32_LOAD: u8 = 0x28; // START_MEMORY_ARGS
 const I64_LOAD: u8 = 0x29;
 const F32_LOAD: u8 = 0x2A;
 const F64_LOAD: u8 = 0x2B;
@@ -45,13 +48,13 @@ const I32_STORE8: u8 = 0x3A;
 const I32_STORE16: u8 = 0x3B;
 const I64_STORE8: u8 = 0x3C;
 const I64_STORE16: u8 = 0x3D;
-const I64_STORE32: u8 = 0x3E;
-const MEMORY_SIZE: u8 = 0x3F;
-const MEMORY_GROW: u8 = 0x40;
-const I32_CONST: u8 = 0x41;
-const I64_CONST: u8 = 0x42;
-const F32_CONST: u8 = 0x43;
-const F64_CONST: u8 = 0x44;
+const I64_STORE32: u8 = 0x3E; // END_MEMORY_ARGS
+const MEMORY_SIZE: u8 = 0x3F; // zero
+const MEMORY_GROW: u8 = 0x40; // zero
+const I32_CONST: u8 = 0x41; // Var_S32
+const I64_CONST: u8 = 0x42; // Var_S64
+const F32_CONST: u8 = 0x43; // F32
+const F64_CONST: u8 = 0x44; // F64
 const I32_EQZ: u8 = 0x45;
 const I32_EQ: u8 = 0x46;
 const I32_NE: u8 = 0x47;
@@ -180,30 +183,171 @@ const I32_EXTEND_16S: u8 = 0xC1;
 const I64_EXTEND_8S: u8 = 0xC2;
 const I64_EXTEND_16S: u8 = 0xC3;
 const I64_EXTEND_32S: u8 = 0xC4;
-const TRUNC_SAT: u8 = 0xFC;
+const TRUNC_SAT: u8 = 0xFC; // Byte
 
+const BLOCK_TYPE_I32: i32 = -1;
+const BLOCK_TYPE_I64: i32 = -2;
+const BLOCK_TYPE_F32: i32 = -3;
+const BLOCK_TYPE_F64: i32 = -4;
+const BLOCK_TYPE_EMPTY: i32 = -64;
 // instruction parser
 impl WasmReader {
-    pub fn read_instruction(&mut self) -> Box<dyn Instruction> {
+    pub fn read_block_type(&mut self) -> Result<BlockType, String> {
+        let bt = self.read_var_i32();
+
+        if bt < 0 {
+            match bt {
+                BLOCK_TYPE_I32 | BLOCK_TYPE_I64 | BLOCK_TYPE_F32 | BLOCK_TYPE_F64 => {
+                    // nothing to do actually
+                }
+
+                _ => {
+                    // you're dead meat
+                    return Err("malformed block type".to_string());
+                }
+            }
+        }
+
+        return Ok(bt);
+    }
+
+    pub fn read_block_arguments(&mut self) -> BlockArguments {
+        let block_type = self.read_block_type().unwrap();
+        let (expr, end) = self.read_expression();
+        if end != END_ {
+            panic!("invalid block end");
+        }
+
+        return BlockArguments {
+            block_type: block_type,
+            insts: expr
+        };
+    }
+
+    pub fn read_if_arguments(&mut self) -> IfArguments {
+        let bt = self.read_block_type().unwrap();
+        let (instrs1, end) = self.read_expression();
+
+        if end == ELSE_ {
+            let(instrs2, end) = self.read_expression();
+
+            if end != END_ {
+                panic!("invalid block end");
+            }
+
+            return IfArguments {
+                block_type: bt,
+                insts_1: instrs1,
+                insts_2: Option::Some(instrs2)
+            }
+        }
+
+        return IfArguments {
+            block_type: bt,
+            insts_1: instrs1,
+            insts_2: None
+        }
+    }
+    
+    pub fn read_call_indirect_arguments(&mut self) -> u32 {
+        let type_idx = self.read_var_u32();
+        self.read_zero();
+        return type_idx;
+    }
+
+    pub fn read_br_table_arguments(&mut self) -> BrTableArguments {
+        return BrTableArguments {
+            labels: self.read_indices(),
+            default: self.read_var_u32()
+        }
+    }
+    
+    pub fn read_instruction(&mut self) -> (Box<dyn Instruction>, u8) {
         let b = self.read_u8();
 
         match b {
+            UNREACHABLE => {
+                return (Box::new(UnreachableInst {}), UNREACHABLE);
+            }
+
+            NOP => {
+                return (Box::new(NopInst {}), NOP);
+            }
+
+            BLOCK => {
+                return (Box::new(BlockInst { bt: self.read_block_arguments(), }), BLOCK)
+            }
+
+            LOOP => {
+                return (Box::new(LoopInst { bt: self.read_block_arguments(), }), LOOP)
+            }
+
+            IF => {
+                return (Box::new(IfInst { if_arguments: self.read_if_arguments() }), IF);
+            }
+
+            ELSE_ => {
+                return (Box::new( NopInst {} /* placeholder */ ), ELSE_);
+            }
+
+            END_ => {
+                return (Box::new( NopInst {} /* placeholder */ ), END_);
+            }
+
+            BR => {
+                return (Box::new(BrInst { lable_index: self.read_var_u32() }), BR);
+            }
+
+            BR_IF => {
+                return (Box::new(BrIfInst { lable_index: self.read_var_u32() }), BR_IF);
+            }
+            
+            BR_TABLE => {
+                return (Box::new(BrTableInst { br_table_arguments: self.read_br_table_arguments() }), BR_TABLE);
+            }
+
+            RETURN => {
+                return (Box::new(ReturnInst {}), RETURN)
+            }
+
+            CALL => {
+                return (Box::new(CallInst { func_index: self.read_var_u32() }), CALL)
+            }
+            
+            CALL_INDIRECT => {
+                return (Box::new(CallIndirectInst { type_idx: self.read_call_indirect_arguments() }), CALL_INDIRECT)
+            }
+
+            DROP => {
+                return (Box::new(DropInst {}), DROP)
+            }
+
+            SELECT => {
+                return (Box::new(SelectInst {}), SELECT)
+            }
+
             // TODO NOT READY YET
+            _ => {
+                panic!("");
+            }
         }
     }
 
-    pub fn read_expression(&mut self) -> Expression {
+    pub fn read_expression(&mut self) -> (Expression, u8) {
         let mut vec: Vec<Box<dyn Instruction>> = Vec::new();
 
+        let mut end_mark;
         loop {
-            // let n = self.read_u8();
-            let inst = self.read_instruction();
-            vec.push(inst);
+            let (inst, bc) = self.read_instruction();
 
-            // if n == 0x05 || n == 0x0B {
-            //     break;
-            // }
+            if bc == ELSE_ || bc == END_ {
+                end_mark = bc;
+                break;
+            }
+
+            vec.push(inst);
         }
-        return vec;
+
+        return (vec, end_mark);
     }
 }

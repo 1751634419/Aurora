@@ -129,7 +129,8 @@ impl WasmReader {
      Join our Discord server to communicate: https://discord.gg/uz6QG5cj
      Any kind of message, except for the toxic one, is allowed. :3
      And if you feel bored, feel free to join the server https://discord.gg/WAtA7fvb5R
-     I am waiting for the arrival of every one of you.*/
+     I am waiting for the arrival of every one of you.
+     Planned to be removed when the virtual machine works normally Lmao*/
     pub fn read_var_i32(&mut self) -> i32 {
         let r = decode_var_int(&self.data, self.point, 32);
 
@@ -231,6 +232,14 @@ const EXPORT_TAG_GLOBAL: u8 = 3;
 
 // wasm reading
 impl WasmReader {
+    pub fn read_zero(&mut self) -> u8 {
+        let b = self.read_u8();
+        if b != 0 {
+            panic!("zero flag expected");
+        }
+        return 0;
+    }
+
     pub fn read_variable_type(&mut self) -> VariableType {
         let v = self.read_u8();
 
@@ -467,7 +476,7 @@ impl WasmReader {
         for i in 0..size {
             vec.push(Global {
                 global_type: self.read_global_type(),
-                default: self.read_expression()
+                default: self.read_expression().0
             });
         }
 
@@ -481,7 +490,7 @@ impl WasmReader {
     pub fn read_element(&mut self) -> Element {
         return Element {
             table: self.read_var_u32(),
-            offset: self.read_expression(),
+            offset: self.read_expression().0,
             default: self.read_indices()
         };
     }
@@ -520,7 +529,7 @@ impl WasmReader {
         let remaining = self.remaining();
         let code = Code {
             locals: self.read_locals_vector(),
-            expression: self.read_expression()
+            expression: self.read_expression().0
         };
         if self.remaining() + n != remaining {
             panic!("Invalid code")
@@ -554,7 +563,7 @@ impl WasmReader {
     pub fn read_data_instance(&mut self) -> Data {
         return Data {
             memory: self.read_var_u32(),
-            offset: self.read_expression(),
+            offset: self.read_expression().0,
             default: self.read_bytes()
         };
     }

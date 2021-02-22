@@ -15,7 +15,7 @@ pub struct BlockArguments {
 pub struct IfArguments {
     pub block_type: BlockType,
     pub insts_1: Vec<Box<dyn Instruction>>,
-    pub insts_2: Vec<Box<dyn Instruction>>
+    pub insts_2: Option<Vec<Box<dyn Instruction>>>
 }
 
 pub struct BrTableArguments {

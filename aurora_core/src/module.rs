@@ -1,4 +1,4 @@
-use crate::inst::{Instruction, Expression};
+use crate::instr::inst::{Instruction, Expression};
 
 pub struct Module {
     pub version: u32,
