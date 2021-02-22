@@ -17,7 +17,7 @@ An unofficial implementation of local virtual machine for WebAssembly in Rust.
 2. Implementing the instructions
 
 ## Licensing
-The source code is licensed under GPL v3. It's available [here](/LICENSE).
+The source code is temporarily licensed under GPL v3. It's available [here](/LICENSE).
 
 ## Info and Discussion
 Join [our Discord server](https://discord.gg/uz6QG5cj)

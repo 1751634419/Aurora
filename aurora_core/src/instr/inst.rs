@@ -23,7 +23,7 @@ pub struct BrTableArguments {
     pub default: LabelIndex
 }
 
-pub struct MemoryArgument {
+pub struct MemoryArguments {
     pub align: u32,
     pub offset: u32
 }

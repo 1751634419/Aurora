@@ -4,8 +4,8 @@ use std::string::FromUtf8Error;
 
 // parser supporting LEB-128
 // see https://en.wikipedia.org/wiki/LEB128#Decode_signed_integer for details
-fn decode_var_int(data: &Vec<u8>, beginning_point: usize, size: usize) -> Result<(i64, usize), String> { // T(result, end pointer index)
-    let mut result: i64 = 0;
+fn decode_var_int(data: &Vec<u8>, beginning_point: usize, size: usize) -> Result<(i128, usize), String> { // T(result, end pointer index)
+    let mut result: i128 = 0;
 
     for i in beginning_point..(beginning_point + size) {
         let relative_count = i - beginning_point;
@@ -20,7 +20,7 @@ fn decode_var_int(data: &Vec<u8>, beginning_point: usize, size: usize) -> Result
                 return Err("The integer is too large.".to_string());
             }
         }
-        result |= (b as i64 & 0x7f) << (relative_count * 7);
+        result |= (b as i128 & 0x7f) << (relative_count * 7);
         if b & 0x80 == 0 {
             if (relative_count * 7 < size) && (b & 0x40 != 0) {
                 result = result | (-1 << ((relative_count + 1) * 7));
@@ -33,8 +33,8 @@ fn decode_var_int(data: &Vec<u8>, beginning_point: usize, size: usize) -> Result
 }
 
 // https://en.wikipedia.org/wiki/LEB128#Decode_unsigned_integer
-fn decode_var_uint(data: &Vec<u8>, beginning_point: usize, size: usize) -> Result<(u64, usize), String> { // T(result, end pointer index)
-    let mut result: u64 = 0;
+fn decode_var_uint(data: &Vec<u8>, beginning_point: usize, size: usize) -> Result<(u128, usize), String> { // T(result, end pointer index)
+    let mut result: u128 = 0;
 
     for i in beginning_point..(beginning_point + size) {
         let relative_count = i - beginning_point;
@@ -48,7 +48,7 @@ fn decode_var_uint(data: &Vec<u8>, beginning_point: usize, size: usize) -> Resul
                 return Err("The integer is too large.".to_string());
             }
         }
-        result |= (b as u64 & 0x7f) << (relative_count * 7);
+        result |= (b as u128 & 0x7f) << (relative_count * 7);
         if b & 0x80 == 0 {
             return Ok((result, i + 1));
         }
@@ -152,7 +152,7 @@ impl WasmReader {
         match r {
             Ok(tuple) => {
                 self.point = tuple.1;
-                return tuple.0;
+                return tuple.0.try_into().unwrap();
             }
 
             Err(err) => {
@@ -182,7 +182,7 @@ impl WasmReader {
         match r {
             Ok(tuple) => {
                 self.point = tuple.1;
-                return tuple.0;
+                return tuple.0.try_into().unwrap();
             }
 
             Err(err) => {
