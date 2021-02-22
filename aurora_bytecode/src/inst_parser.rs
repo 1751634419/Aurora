@@ -620,7 +620,7 @@ impl WasmReader {
             }
 
             I32_POPCNT => {
-                return (Box::new(I32PopcntInst {}), I32_POPCNT);
+                return (Box::new(I32PopCntInst {}), I32_POPCNT);
             }
 
             I32_ADD => {
@@ -692,7 +692,7 @@ impl WasmReader {
             }
 
             I64_POPCNT => {
-                return (Box::new(I64PopcntInst {}), I64_POPCNT);
+                return (Box::new(I64PopCntInst {}), I64_POPCNT);
             }
 
             I64_ADD => {
@@ -1000,7 +1000,7 @@ impl WasmReader {
     pub fn read_expression(&mut self) -> (Expression, u8) {
         let mut vec: Vec<Box<dyn Instruction>> = Vec::new();
 
-        let mut end_mark;
+        let end_mark;
         loop {
             let (inst, bc) = self.read_instruction();
 

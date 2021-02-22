@@ -95,6 +95,41 @@ pub struct CallInst {
 impl Instruction for CallInst {
     fn Execute(&self, vm: &VirtualMachine) {
         // todo UNIMPLEMENTED
+        // hack
+        let mut stack = &vm.operand_stack;
+        let imp_sec = &vm.module.import_section[self.func_index as usize];
+        match imp_sec.name.as_str() {
+            "assert_true" => {
+                assert_eq!(stack.pop_bool().unwrap(), true);
+            }
+            "assert_false" => {
+                assert_eq!(stack.pop_bool().unwrap(), false);
+            }
+            "assert_eq_i32" => {
+                let v1 = stack.pop_u32().unwrap();
+                let v2 = stack.pop_u32().unwrap();
+                assert_eq!(v1, v2);
+            }
+            "assert_eq_i64" => {
+                let v1 = stack.pop_u64().unwrap();
+                let v2 = stack.pop_u64().unwrap();
+                assert_eq!(v1, v2);
+            }
+            "assert_eq_f32" => {
+                let v1 = stack.pop_f32().unwrap();
+                let v2 = stack.pop_f32().unwrap();
+                assert_eq!(v1, v2);
+            }
+            "assert_eq_f64" => {
+                let v1 = stack.pop_f64().unwrap();
+                let v2 = stack.pop_f64().unwrap();
+                assert_eq!(v1, v2);
+            }
+
+            _ => {
+                panic!("wrong");
+            }
+        }
     }
 }
 

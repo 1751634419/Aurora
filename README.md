@@ -13,10 +13,12 @@ An unofficial implementation of local virtual machine for WebAssembly in Rust.
 #### NOT AVAILABLE YET
 
 ## Current Progress
-1. Implement the instructions related to the operand stack
+1. Implement all the instructions
 
 ***Note: the parser for the format *.wasm* has been completed.***
 
+## Plans
+1. Adjust the structure of the project.
 
 ## Licensing
 The source code is temporarily licensed under GPL v3. It's available [here](/LICENSE).
