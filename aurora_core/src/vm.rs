@@ -1,5 +1,4 @@
 use crate::module::{Module, MemoryType, FunctionType, GlobalType};
-use std::convert::TryInto;
 use std::cell::Cell;
 use std::option::Option::Some;
 use crate::instr::inst::Expression;
@@ -262,7 +261,7 @@ impl ControlStack {
         for y in 0..size {
             let i = size - y - 1;
             if self.stack[i].op_code == 0x10 { // CALL: 0x10
-                return (Rc::clone(&self.stack[i]), i);
+                return (Rc::clone(&self.stack[i]), y);
             }
         }
 

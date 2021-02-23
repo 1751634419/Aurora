@@ -1,7 +1,5 @@
-use crate::instr::inst::{Instruction, MemoryArguments};
+use crate::instr::inst::Instruction;
 use crate::vm::VirtualMachine;
-use std::cmp::min;
-use std::convert::TryInto;
 
 pub struct I32ConstInst {
     pub val: i32
@@ -785,6 +783,7 @@ impl Instruction for I64MulInst {
         let stack = &mut vm.operand_stack;
         let b = stack.pop_u64();
         let a = stack.pop_u64();
+        println!("{}, {}", a, b);
         stack.push_u64(a * b);
     }
 }
@@ -1729,7 +1728,7 @@ fn trunc_sat_s(z: f64, n: i8) -> i64 {
         return 0;
     }
 
-    let min = (-1_i64 << (n - 1));
+    let min = -1_i64 << (n - 1);
     let max = (1_i64 << (n - 1)) - 1;
     if z.is_infinite() {
         if z.is_sign_negative() {

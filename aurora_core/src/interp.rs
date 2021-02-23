@@ -1,12 +1,16 @@
 use crate::vm::{VirtualMachine, ControlFrame};
-use std::borrow::{BorrowMut, Borrow};
-use std::ops::DerefMut;
 use crate::instr::inst::Expression;
 use crate::module::FunctionType;
 use std::rc::Rc;
 use std::cell::Cell;
 
 impl VirtualMachine {
+    pub fn reset_block(&mut self, frame: Rc<ControlFrame>) {
+        let results = self.operand_stack.pop_u64s(frame.block_type.parameter_types.len());
+        self.operand_stack.pop_u64s(self.operand_stack.size() - frame.base_pointer);
+        self.operand_stack.push_u64s(&results);
+    }
+
     pub fn enter_block(&mut self, op_code: u8, bt: Rc<FunctionType>, expr: Expression) {
         let bp = self.operand_stack.size() - bt.parameter_types.len();
         let cf = ControlFrame {

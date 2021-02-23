@@ -38,7 +38,7 @@ fn init_globals(vm: &mut VirtualMachine) {
 }
 
 fn main() {
-    let result = fs::read("E:\\wat\\test7\\ch07_fib.wasm");
+    let result = fs::read("E:\\wat\\test8\\ch08_fac.wasm");
     if result.is_err() {
         panic!("Error dealing with the file reading")
     }
