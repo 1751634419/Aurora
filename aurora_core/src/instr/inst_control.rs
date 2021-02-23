@@ -5,7 +5,7 @@ use crate::module::{BlockType, LabelIndex, FunctionIndex, TypeIndex};
 pub struct UnreachableInst {}
 
 impl Instruction for UnreachableInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         panic!("Unreachable");
     }
 }
@@ -13,7 +13,7 @@ impl Instruction for UnreachableInst {
 pub struct NopInst {}
 
 impl Instruction for NopInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // nothing to do
     }
 }
@@ -23,7 +23,7 @@ pub struct BlockInst {
 }
 
 impl Instruction for BlockInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -33,7 +33,7 @@ pub struct LoopInst {
 }
 
 impl Instruction for LoopInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -43,7 +43,7 @@ pub struct IfInst {
 }
 
 impl Instruction for IfInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -53,7 +53,7 @@ pub struct BrInst {
 }
 
 impl Instruction for BrInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -63,7 +63,7 @@ pub struct BrIfInst {
 }
 
 impl Instruction for BrIfInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -73,7 +73,7 @@ pub struct BrTableInst {
 }
 
 impl Instruction for BrTableInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -83,7 +83,7 @@ pub struct ReturnInst {
 }
 
 impl Instruction for ReturnInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -93,10 +93,10 @@ pub struct CallInst {
 }
 
 impl Instruction for CallInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
         // hack
-        let mut stack = &vm.operand_stack;
+        let mut stack = &mut vm.operand_stack;
         let imp_sec = &vm.module.import_section[self.func_index as usize];
         match imp_sec.name.as_str() {
             "assert_true" => {
@@ -138,7 +138,7 @@ pub struct CallIndirectInst {
 }
 
 impl Instruction for CallIndirectInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }

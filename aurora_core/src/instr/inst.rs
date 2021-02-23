@@ -1,21 +1,22 @@
 use crate::vm::VirtualMachine;
 use crate::module::{BlockType, LabelIndex};
+use std::rc::Rc;
 
 pub trait Instruction {
-    fn Execute(&self, vm: &VirtualMachine);
+    fn Execute(&self, vm: &mut VirtualMachine);
 }
 
 pub type Expression = Vec<Box<dyn Instruction>>;
 
 pub struct BlockArguments {
     pub block_type: BlockType,
-    pub insts: Vec<Box<dyn Instruction>>
+    pub insts: Expression
 }
 
 pub struct IfArguments {
     pub block_type: BlockType,
-    pub insts_1: Vec<Box<dyn Instruction>>,
-    pub insts_2: Option<Vec<Box<dyn Instruction>>>
+    pub insts_1: Expression,
+    pub insts_2: Option<Expression>
 }
 
 pub struct BrTableArguments {

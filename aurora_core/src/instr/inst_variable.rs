@@ -7,7 +7,7 @@ pub struct LocalGetInst {
 }
 
 impl Instruction for LocalGetInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -17,7 +17,7 @@ pub struct LocalSetInst {
 }
 
 impl Instruction for LocalSetInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -27,7 +27,7 @@ pub struct LocalTeeInst {
 }
 
 impl Instruction for LocalTeeInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -37,7 +37,7 @@ pub struct GlobalGetInst {
 }
 
 impl Instruction for GlobalGetInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -47,7 +47,7 @@ pub struct GlobalSetInst {
 }
 
 impl Instruction for GlobalSetInst {
-    fn Execute(&self, vm: &VirtualMachine) {
+    fn Execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }

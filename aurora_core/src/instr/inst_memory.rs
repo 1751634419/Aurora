@@ -1,13 +1,66 @@
 use crate::instr::inst::{Instruction, MemoryArguments};
 use crate::vm::VirtualMachine;
 
+fn read_u8(vm: &mut VirtualMachine, offset: u32) -> u8 {
+    let start_addr = vm.operand_stack.pop_u32().unwrap() as u64 + offset as u64;
+    let mut data: [u8; 1] = [0; 1];
+    vm.memory.read(start_addr, &mut data);
+    return u8::from_le_bytes(data);
+}
+
+fn read_u16(vm: &mut VirtualMachine, offset: u32) -> u16 {
+    let start_addr = vm.operand_stack.pop_u32().unwrap() as u64 + offset as u64;
+    let mut data: [u8; 2] = [0; 2];
+    vm.memory.read(start_addr, &mut data);
+    return u16::from_le_bytes(data);
+}
+
+fn read_u32(vm: &mut VirtualMachine, offset: u32) -> u32 {
+    let start_addr = vm.operand_stack.pop_u32().unwrap() as u64 + offset as u64;
+    let mut data: [u8; 4] = [0; 4];
+    vm.memory.read(start_addr, &mut data);
+    return u32::from_le_bytes(data);
+}
+
+fn read_u64(vm: &mut VirtualMachine, offset: u32) -> u64 {
+    let start_addr = vm.operand_stack.pop_u32().unwrap() as u64 + offset as u64;
+    let mut data: [u8; 8] = [0; 8];
+    vm.memory.read(start_addr, &mut data);
+    return u64::from_le_bytes(data);
+}
+
+fn write_u8(vm: &mut VirtualMachine, offset: u32, val: u8) {
+    let start_addr = vm.operand_stack.pop_u32().unwrap() as u64 + offset as u64;
+    let mut data: [u8; 1] = val.to_le_bytes();
+    vm.memory.write(start_addr, &mut data);
+}
+
+fn write_u16(vm: &mut VirtualMachine, offset: u32, val: u16) {
+    let start_addr = vm.operand_stack.pop_u32().unwrap() as u64 + offset as u64;
+    let mut data: [u8; 2] = val.to_le_bytes();
+    vm.memory.write(start_addr, &mut data);
+}
+
+fn write_u32(vm: &mut VirtualMachine, offset: u32, val: u32) {
+    let start_addr = vm.operand_stack.pop_u32().unwrap() as u64 + offset as u64;
+    let mut data: [u8; 4] = val.to_le_bytes();
+    vm.memory.write(start_addr, &mut data);
+}
+
+fn write_u64(vm: &mut VirtualMachine, offset: u32, val: u64) {
+    let start_addr = vm.operand_stack.pop_u32().unwrap() as u64 + offset as u64;
+    let mut data: [u8; 8] = val.to_le_bytes();
+    vm.memory.write(start_addr, &mut data);
+}
+
 pub struct I32LoadInst {
     pub memory_arguments: MemoryArguments
 }
 
 impl Instruction for I32LoadInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u32(vm, self.memory_arguments.offset);
+        vm.operand_stack.push_u32(val);
     }
 }
 
@@ -16,8 +69,9 @@ pub struct I64LoadInst {
 }
 
 impl Instruction for I64LoadInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u64(vm, self.memory_arguments.offset);
+        vm.operand_stack.push_u64(val);
     }
 }
 
@@ -26,8 +80,10 @@ pub struct F32LoadInst {
 }
 
 impl Instruction for F32LoadInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u32(vm, self.memory_arguments.offset);
+        let val = f32::from_le_bytes(val.to_le_bytes());
+        vm.operand_stack.push_f32(val);
     }
 }
 
@@ -36,8 +92,10 @@ pub struct F64LoadInst {
 }
 
 impl Instruction for F64LoadInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u64(vm, self.memory_arguments.offset);
+        let val = f64::from_le_bytes(val.to_le_bytes());
+        vm.operand_stack.push_f64(val);
     }
 }
 
@@ -46,8 +104,10 @@ pub struct I32Load8SInst {
 }
 
 impl Instruction for I32Load8SInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u8(vm, self.memory_arguments.offset);
+        let val = val as i8;
+        vm.operand_stack.push_i32(val as i32);
     }
 }
 
@@ -56,8 +116,9 @@ pub struct I32Load8UInst {
 }
 
 impl Instruction for I32Load8UInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u8(vm, self.memory_arguments.offset);
+        vm.operand_stack.push_u32(val as u32);
     }
 }
 
@@ -66,8 +127,10 @@ pub struct I32Load16SInst {
 }
 
 impl Instruction for I32Load16SInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u16(vm, self.memory_arguments.offset);
+        let val = val as i16;
+        vm.operand_stack.push_i32(val as i32);
     }
 }
 
@@ -76,8 +139,9 @@ pub struct I32Load16UInst {
 }
 
 impl Instruction for I32Load16UInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u16(vm, self.memory_arguments.offset);
+        vm.operand_stack.push_u32(val as u32);
     }
 }
 
@@ -86,8 +150,10 @@ pub struct I64Load8SInst {
 }
 
 impl Instruction for I64Load8SInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u8(vm, self.memory_arguments.offset);
+        let val = val as i8;
+        vm.operand_stack.push_i64(val as i64);
     }
 }
 
@@ -96,8 +162,9 @@ pub struct I64Load8UInst {
 }
 
 impl Instruction for I64Load8UInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u8(vm, self.memory_arguments.offset);
+        vm.operand_stack.push_u64(val as u64);
     }
 }
 
@@ -106,8 +173,10 @@ pub struct I64Load16SInst {
 }
 
 impl Instruction for I64Load16SInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u16(vm, self.memory_arguments.offset);
+        let val = val as i16;
+        vm.operand_stack.push_i64(val as i64);
     }
 }
 
@@ -116,8 +185,9 @@ pub struct I64Load16UInst {
 }
 
 impl Instruction for I64Load16UInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u16(vm, self.memory_arguments.offset);
+        vm.operand_stack.push_u64(val as u64);
     }
 }
 
@@ -126,8 +196,10 @@ pub struct I64Load32SInst {
 }
 
 impl Instruction for I64Load32SInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u32(vm, self.memory_arguments.offset);
+        let val = val as i32;
+        vm.operand_stack.push_i64(val as i64);
     }
 }
 
@@ -136,8 +208,9 @@ pub struct I64Load32UInst {
 }
 
 impl Instruction for I64Load32UInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = read_u32(vm, self.memory_arguments.offset);
+        vm.operand_stack.push_u64(val as u64);
     }
 }
 
@@ -146,8 +219,9 @@ pub struct I32StoreInst {
 }
 
 impl Instruction for I32StoreInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = vm.operand_stack.pop_u32().unwrap();
+        write_u32(vm, self.memory_arguments.offset, val);
     }
 }
 
@@ -156,8 +230,9 @@ pub struct I64StoreInst {
 }
 
 impl Instruction for I64StoreInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = vm.operand_stack.pop_u64().unwrap();
+        write_u64(vm, self.memory_arguments.offset, val);
     }
 }
 
@@ -166,8 +241,10 @@ pub struct F32StoreInst {
 }
 
 impl Instruction for F32StoreInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = vm.operand_stack.pop_f32().unwrap();
+        let val = u32::from_le_bytes(val.to_le_bytes());
+        write_u32(vm, self.memory_arguments.offset, val);
     }
 }
 
@@ -176,8 +253,10 @@ pub struct F64StoreInst {
 }
 
 impl Instruction for F64StoreInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = vm.operand_stack.pop_f64().unwrap();
+        let val = u64::from_le_bytes(val.to_le_bytes());
+        write_u64(vm, self.memory_arguments.offset, val);
     }
 }
 
@@ -186,8 +265,10 @@ pub struct I32Store8Inst {
 }
 
 impl Instruction for I32Store8Inst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = vm.operand_stack.pop_u32().unwrap();
+        let val = val as u8;
+        write_u8(vm, self.memory_arguments.offset, val);
     }
 }
 
@@ -196,8 +277,10 @@ pub struct I32Store16Inst {
 }
 
 impl Instruction for I32Store16Inst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = vm.operand_stack.pop_u32().unwrap();
+        let val = val as u16;
+        write_u16(vm, self.memory_arguments.offset, val);
     }
 }
 
@@ -206,8 +289,10 @@ pub struct I64Store8Inst {
 }
 
 impl Instruction for I64Store8Inst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = vm.operand_stack.pop_u64().unwrap();
+        let val = val as u8;
+        write_u8(vm, self.memory_arguments.offset, val);
     }
 }
 
@@ -216,8 +301,10 @@ pub struct I64Store16Inst {
 }
 
 impl Instruction for I64Store16Inst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = vm.operand_stack.pop_u64().unwrap();
+        let val = val as u16;
+        write_u16(vm, self.memory_arguments.offset, val);
     }
 }
 
@@ -226,8 +313,10 @@ pub struct I64Store32Inst {
 }
 
 impl Instruction for I64Store32Inst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let val = vm.operand_stack.pop_u64().unwrap();
+        let val = val as u32;
+        write_u32(vm, self.memory_arguments.offset, val);
     }
 }
 
@@ -236,8 +325,9 @@ pub struct MemorySizeInst {
 }
 
 impl Instruction for MemorySizeInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let size = vm.memory.size();
+        vm.operand_stack.push_u32(size);
     }
 }
 
@@ -246,7 +336,15 @@ pub struct MemoryGrowInst {
 }
 
 impl Instruction for MemoryGrowInst {
-    fn Execute(&self, vm: &VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn Execute(&self, vm: &mut VirtualMachine) {
+        let n = vm.operand_stack.pop_u32().unwrap();
+        let result = vm.memory.grow(n);
+        vm.operand_stack.push_u32(
+            if result.is_ok() {
+                result.unwrap()
+            } else {
+                0xFFFFFFFF
+            }
+        );
     }
 }
