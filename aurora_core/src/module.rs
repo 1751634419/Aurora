@@ -119,6 +119,16 @@ pub struct Code {
     pub expression: Expression
 }
 
+impl Code {
+    pub fn get_local_count(&self) -> usize {
+        let mut n = 0_usize;
+        for i in 0..self.locals.len() {
+            n += self.locals[i].count as usize;
+        }
+        return n;
+    }
+}
+
 pub struct Data {
     pub memory: MemoryIndex,
     pub offset: Expression,

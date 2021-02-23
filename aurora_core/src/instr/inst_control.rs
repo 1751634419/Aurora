@@ -204,8 +204,8 @@ impl CallInst {
         vm.enter_block(0x10, ft, vm.module.code_section[index].expression.clone());
 
         // initialize the local variable table
-        let localCount = vm.module.code_section[index].locals.len();
-        for i in 0..localCount {
+        let local_count = vm.module.code_section[index].get_local_count();
+        for i in 0..local_count {
             vm.operand_stack.push_u64(0);
         }
     }

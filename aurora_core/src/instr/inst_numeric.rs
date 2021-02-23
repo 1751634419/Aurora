@@ -783,8 +783,8 @@ impl Instruction for I64MulInst {
         let stack = &mut vm.operand_stack;
         let b = stack.pop_u64();
         let a = stack.pop_u64();
-        println!("{}, {}", a, b);
-        stack.push_u64(a * b);
+        let val = a * b;
+        stack.push_u64(val);
     }
 }
 
@@ -1051,7 +1051,6 @@ impl Instruction for F32SubInst {
         let stack = &mut vm.operand_stack;
         let b = stack.pop_f32();
         let a = stack.pop_f32();
-        stack.push_f32(a - b);
     }
 }
 

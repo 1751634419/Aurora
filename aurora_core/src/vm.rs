@@ -207,10 +207,10 @@ impl OperandStack {
     }
 
     pub fn pop_u64s(&mut self, n: usize) -> Vec<u64> {
-        let mut table: Vec<u64> = Vec::new();
+        let mut table: Vec<u64> = vec![0; n];
 
         for i in 0..n {
-            table.push(self.pop_u64());
+            table[n - i - 1] = self.pop_u64();
         }
 
         return table;
