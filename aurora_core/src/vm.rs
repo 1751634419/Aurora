@@ -1,18 +1,60 @@
-use crate::module::{Module, MemoryType};
+use crate::module::{Module, MemoryType, FunctionType, GlobalType};
 use std::convert::TryInto;
 use std::cell::Cell;
 use std::option::Option::Some;
+use crate::instr::inst::Expression;
 use std::rc::Rc;
 
 pub struct VirtualMachine {
     pub module: Rc<Module>,
     pub operand_stack: OperandStack,
-    pub memory: Memory
+    pub control_stack: ControlStack,
+    pub memory: Memory,
+    pub global_table: GlobalTable
+}
+
+pub struct GlobalTable {
+    globals: Vec<Rc<GlobalVariable>>
+}
+
+impl GlobalTable {
+    pub fn new_global_type() -> GlobalTable {
+        return GlobalTable {
+            globals: Vec::new()
+        }
+    }
+
+    pub fn get_global(&self, index: usize) -> Rc<GlobalVariable> {
+        return self.globals[index].clone();
+    }
+
+    pub fn push_global(&mut self, global: Rc<GlobalVariable>) {
+        self.globals.push(global);
+    }
+
+    pub fn get_u64(&self, index: usize) -> u64 {
+        return self.globals[index].val.get();
+    }
+
+    pub fn set_u64(&self, index: usize, val: u64) {
+        let global = self.globals[index].clone();
+
+        if !global.global_type.mutable {
+            panic!("immutable global")
+        }
+
+        global.val.set(val);
+    }
+}
+
+pub struct GlobalVariable {
+    pub global_type: Rc<GlobalType>,
+    pub val: Cell<u64>
 }
 
 pub struct Memory {
-    memory_type: MemoryType,
-    content: Vec<u8>
+    pub memory_type: MemoryType,
+    pub content: Vec<u8>
 }
 
 impl Memory {
@@ -53,11 +95,11 @@ impl Memory {
         return (self.content.len() as u32) / 65536_u32;
     }
 
-    pub fn grow(&mut self, n: u32) -> Result<u32, String> {
+    pub fn grow(&mut self, n: u32) -> u32 {
         let old_page_size = self.size();
         if let Some(max) = self.memory_type.max {
             if old_page_size + n > max {
-                return Result::Err("memory overflowed".to_string());
+                return 0xFFFFFFFF;
             }
         }
         let pushing_count = old_page_size * 65536_u32;
@@ -65,18 +107,36 @@ impl Memory {
             self.content.push(0);
         }
 
-        return Ok(old_page_size)
+        return old_page_size;
     }
 }
 
 pub struct OperandStack {
-    pub slots: Vec<u64>
+    pub slots: Vec<u64>,
+    pub local_0_index: usize
 }
 
+// implement the traits of the local variable table
+impl OperandStack {
+    pub fn size(&self) -> usize {
+        return self.slots.len();
+    }
+
+    pub fn get(&self, index: usize) -> u64 {
+        return self.slots[index];
+    }
+
+    pub fn set(&mut self, index: usize, val: u64) {
+        self.slots[index] = val;
+    }
+}
+
+// implement the traits of operand stack
 impl OperandStack {
     pub fn new_operand_stack() -> OperandStack {
         return OperandStack {
             slots: Vec::new(),
+            local_0_index: 0
         }
     }
 
@@ -84,88 +144,48 @@ impl OperandStack {
         self.slots.push(val);
     }
 
-    pub fn pop_u64(&mut self) -> Option<u64> {
-        return self.slots.pop();
+    pub fn pop_u64(&mut self) -> u64 {
+        return self.slots.remove(self.slots.len() - 1);
     }
 
     pub fn push_u32(&mut self, val: u32) {
-        // self.push_i32(val as i32);
         self.push_u64(val as u64);
     }
 
-    pub fn pop_u32(&mut self) -> Option<u32> {
-        // if let Some(val) = self.pop_i32() {
-            // return Some(val as u32);
-        // }
-        if let Some(val) = self.pop_u64() {
-            return Some(val as u32);
-        }
-
-        return None;
+    pub fn pop_u32(&mut self) -> u32 {
+        return self.pop_u64() as u32;
     }
 
     pub fn push_i64(&mut self, val: i64) {
         self.push_u64(val as u64);
-        // self.push_u64(u64::from_be_bytes(val.to_be_bytes()));
     }
 
-    pub fn pop_i64(&mut self) -> Option<i64> {
-        if let Some(val) = self.pop_u64() {
-            return Some(val as i64);
-            // return Some(i64::from_be_bytes(val.to_be_bytes()));
-        }
-
-        return None;
+    pub fn pop_i64(&mut self) -> i64 {
+        return self.pop_u64() as i64;
     }
 
     pub fn push_i32(&mut self, val: i32) {
         self.push_u32(val as u32);
-        // let mut arr: [u8; 8] = [0; 8];
-        // let m = val.to_be_bytes();
-        // for i in 0..4 {
-        //     arr[i] = m[i];
-        // }
-        // self.push_u64(u64::from_be_bytes(arr));
     }
 
-    pub fn pop_i32(&mut self) -> Option<i32> {
-        // if let Some(val) = self.pop_u64() {
-        //     let arr = val.to_be_bytes();
-        //     let mut m : [u8; 4] = [0; 4];
-        //     for i in 0..4 {
-        //         m[i] = arr[i];
-        //     }
-        //     return Some(i32::from_be_bytes(m));
-        // }
-        if let Some(val) = self.pop_u32() {
-            return Some(val as i32);
-        }
-
-        return None;
+    pub fn pop_i32(&mut self) -> i32 {
+        return self.pop_u32() as i32;
     }
 
     pub fn push_f64(&mut self, val: f64) {
         self.push_u64(u64::from_be_bytes(val.to_be_bytes()));
     }
 
-    pub fn pop_f64(&mut self) -> Option<f64> {
-        if let Some(val) = self.pop_u64() {
-            return Some(f64::from_be_bytes(val.to_be_bytes()));
-        }
-
-        return None;
+    pub fn pop_f64(&mut self) -> f64 {
+        return f64::from_be_bytes(self.pop_u64().to_be_bytes())
     }
 
     pub fn push_f32(&mut self, val: f32) {
         self.push_u32(u32::from_le_bytes(val.to_le_bytes()));
     }
 
-    pub fn pop_f32(&mut self) -> Option<f32> {
-        if let Some(val) = self.pop_u32() {
-            return Some(f32::from_le_bytes(val.to_le_bytes()));
-        }
-
-        return None;
+    pub fn pop_f32(&mut self) -> f32 {
+        return f32::from_le_bytes(self.pop_u32().to_le_bytes());
     }
 
     pub fn push_bool(&mut self, val: bool) {
@@ -173,11 +193,79 @@ impl OperandStack {
         self.push_i32(val);
     }
 
-    pub fn pop_bool(&mut self) -> Option<bool> {
-        if let Some(val) = self.pop_i32() {
-            return Some(val != 0)
+    pub fn pop_bool(&mut self) -> bool {
+        return self.pop_i32() != 0
+    }
+
+    pub fn top(&self) -> u64 {
+        return self.slots[self.slots.len() - 1];
+    }
+
+    pub fn push_u64s(&mut self, table: &Vec<u64>) {
+        for i in 0..table.len() {
+            self.push_u64(table[i]);
+        }
+    }
+
+    pub fn pop_u64s(&mut self, n: usize) -> Vec<u64> {
+        let mut table: Vec<u64> = Vec::new();
+
+        for i in 0..n {
+            table.push(self.pop_u64());
         }
 
-        return None;
+        return table;
+    }
+}
+
+pub struct ControlFrame {
+    pub op_code: u8,
+    pub block_type: Rc<FunctionType>,
+    pub instructions: Expression, // Rc<..>
+    pub base_pointer: usize,
+    pub program_counter: Cell<usize>
+}
+
+pub struct ControlStack {
+    stack: Vec<Rc<ControlFrame>>
+}
+
+impl ControlStack {
+    pub fn new_control_stack() -> ControlStack {
+        return ControlStack {
+            stack: Vec::new()
+        }
+    }
+
+    pub fn push(&mut self, frame: Rc<ControlFrame>) {
+        self.stack.push(frame);
+    }
+
+    pub fn pop(&mut self) -> Rc<ControlFrame> {
+        return Rc::clone(&self.stack.remove(self.stack.len() - 1));
+    }
+
+    pub fn local_top_index(&self) -> usize {
+        return self.top_call_frame().0.base_pointer;
+    }
+
+    pub fn top(&self) -> Rc<ControlFrame> {
+        return Rc::clone(&self.stack[self.stack.len() - 1])
+    }
+
+    pub fn depth(&self) -> usize {
+        return self.stack.len();
+    }
+
+    pub fn top_call_frame(&self) -> (Rc<ControlFrame>, usize) {
+        let size = self.stack.len();
+        for y in 0..size {
+            let i = size - y - 1;
+            if self.stack[i].op_code == 0x10 { // CALL: 0x10
+                return (Rc::clone(&self.stack[i]), i);
+            }
+        }
+
+        panic!("the top call frame isn't found");
     }
 }

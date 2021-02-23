@@ -3,10 +3,10 @@ use crate::module::{BlockType, LabelIndex};
 use std::rc::Rc;
 
 pub trait Instruction {
-    fn Execute(&self, vm: &mut VirtualMachine);
+    fn execute(&self, vm: &mut VirtualMachine);
 }
 
-pub type Expression = Vec<Box<dyn Instruction>>;
+pub type Expression = Rc<Vec<Box<dyn Instruction>>>;
 
 pub struct BlockArguments {
     pub block_type: BlockType,

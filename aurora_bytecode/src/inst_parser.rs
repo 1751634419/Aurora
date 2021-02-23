@@ -8,6 +8,7 @@ use aurora_core::instr::inst_variable::{LocalGetInst, LocalSetInst, LocalTeeInst
 use aurora_core::instr::inst_memory::{I32LoadInst, I64LoadInst, F32LoadInst, F64LoadInst, I32Load8SInst, I32Load8UInst, I32Load16SInst, I32Load16UInst, I64Load8SInst, I64Load8UInst, I64Load16SInst, I64Load16UInst, I64Load32SInst, I64Load32UInst, I32StoreInst, I64StoreInst, F32StoreInst, F64StoreInst, I32Store8Inst, I32Store16Inst, I64Store8Inst, I64Store16Inst, I64Store32Inst, MemorySizeInst, MemoryGrowInst};
 use aurora_core::instr::inst_numeric::*;
 use std::any::Any;
+use std::rc::Rc;
 
 // WASM BYTECODE
 const UNREACHABLE: u8 = 0x00;
@@ -1012,6 +1013,6 @@ impl WasmReader {
             vec.push(inst);
         }
 
-        return (vec, end_mark);
+        return (Rc::new(vec), end_mark);
     }
 }

@@ -5,7 +5,7 @@ use crate::module::{BlockType, LabelIndex, FunctionIndex, TypeIndex};
 pub struct UnreachableInst {}
 
 impl Instruction for UnreachableInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
+    fn execute(&self, vm: &mut VirtualMachine) {
         panic!("Unreachable");
     }
 }
@@ -13,7 +13,7 @@ impl Instruction for UnreachableInst {
 pub struct NopInst {}
 
 impl Instruction for NopInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
+    fn execute(&self, vm: &mut VirtualMachine) {
         // nothing to do
     }
 }
@@ -23,7 +23,7 @@ pub struct BlockInst {
 }
 
 impl Instruction for BlockInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
+    fn execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -33,7 +33,7 @@ pub struct LoopInst {
 }
 
 impl Instruction for LoopInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
+    fn execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -43,7 +43,7 @@ pub struct IfInst {
 }
 
 impl Instruction for IfInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
+    fn execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -53,7 +53,7 @@ pub struct BrInst {
 }
 
 impl Instruction for BrInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
+    fn execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -63,8 +63,12 @@ pub struct BrIfInst {
 }
 
 impl Instruction for BrIfInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
+    fn execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
+        // hack
+        if vm.operand_stack.pop_bool() {
+            vm.exit_block();
+        }
     }
 }
 
@@ -73,7 +77,7 @@ pub struct BrTableInst {
 }
 
 impl Instruction for BrTableInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
+    fn execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -83,7 +87,7 @@ pub struct ReturnInst {
 }
 
 impl Instruction for ReturnInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
+    fn execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }
@@ -93,36 +97,60 @@ pub struct CallInst {
 }
 
 impl Instruction for CallInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn execute(&self, vm: &mut VirtualMachine) {
+        let index = self.func_index as usize;
+        let imported_func_count = vm.module.import_section.len(); // todo
+
+        if index < imported_func_count {
+            CallInst::call_assert_func(vm, index);
+        } else {
+            CallInst::call_internal_func(vm, index - imported_func_count);
+        }
+    }
+}
+
+impl CallInst {
+    fn call_internal_func(vm: &mut VirtualMachine, index: usize) {
+        let ft_idx = vm.module.func_section[index];
+        let ft = vm.module.type_section[ft_idx as usize].clone();
+        vm.enter_block(0x10, ft, vm.module.code_section[index].expression.clone());
+
+        // initialize the local variable table
+        let localCount = vm.module.code_section[index].locals.len();
+        for i in 0..localCount {
+            vm.operand_stack.push_u64(0);
+        }
+    }
+
+    fn call_assert_func(vm: &mut VirtualMachine, func_index: usize) {
         // hack
-        let mut stack = &mut vm.operand_stack;
-        let imp_sec = &vm.module.import_section[self.func_index as usize];
+        let stack = &mut vm.operand_stack;
+        let imp_sec = &vm.module.import_section[func_index];
         match imp_sec.name.as_str() {
             "assert_true" => {
-                assert_eq!(stack.pop_bool().unwrap(), true);
+                assert_eq!(stack.pop_bool(), true);
             }
             "assert_false" => {
-                assert_eq!(stack.pop_bool().unwrap(), false);
+                assert_eq!(stack.pop_bool(), false);
             }
             "assert_eq_i32" => {
-                let v1 = stack.pop_u32().unwrap();
-                let v2 = stack.pop_u32().unwrap();
+                let v1 = stack.pop_u32();
+                let v2 = stack.pop_u32();
                 assert_eq!(v1, v2);
             }
             "assert_eq_i64" => {
-                let v1 = stack.pop_u64().unwrap();
-                let v2 = stack.pop_u64().unwrap();
+                let v1 = stack.pop_u64();
+                let v2 = stack.pop_u64();
                 assert_eq!(v1, v2);
             }
             "assert_eq_f32" => {
-                let v1 = stack.pop_f32().unwrap();
-                let v2 = stack.pop_f32().unwrap();
+                let v1 = stack.pop_f32();
+                let v2 = stack.pop_f32();
                 assert_eq!(v1, v2);
             }
             "assert_eq_f64" => {
-                let v1 = stack.pop_f64().unwrap();
-                let v2 = stack.pop_f64().unwrap();
+                let v1 = stack.pop_f64();
+                let v2 = stack.pop_f64();
                 assert_eq!(v1, v2);
             }
 
@@ -138,7 +166,7 @@ pub struct CallIndirectInst {
 }
 
 impl Instruction for CallIndirectInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
+    fn execute(&self, vm: &mut VirtualMachine) {
         // todo UNIMPLEMENTED
     }
 }

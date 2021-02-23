@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 use aurora_core::module::{Module, CustomSection, FunctionType, VariableType, Import, ImportDescription, TableType, Limits, GlobalType, MemoryType, Global, ExportDescription, Export, ExportTag, Element, Code, Locals, Data};
 use std::string::FromUtf8Error;
+use std::rc::Rc;
 
 // parser supporting LEB-128
 // see https://en.wikipedia.org/wiki/LEB128#Decode_signed_integer for details
@@ -282,12 +283,12 @@ impl WasmReader {
         }
     }
 
-    pub fn read_type_section(&mut self) -> Vec<FunctionType> {
-        let mut vec: Vec<FunctionType> = Vec::new();
+    pub fn read_type_section(&mut self) -> Vec<Rc<FunctionType>> {
+        let mut vec: Vec<Rc<FunctionType>> = Vec::new();
         let size = self.read_var_u32();
 
         for i in 0..size {
-            vec.push(self.read_function_type());
+            vec.push(Rc::new(self.read_function_type()));
         }
 
         return vec;
@@ -402,7 +403,7 @@ impl WasmReader {
     }
 
     pub fn read_export_description(&mut self) -> ExportDescription {
-        let mut tag: ExportTag;
+        let tag: ExportTag;
         
         match self.read_u8() {
             EXPORT_TAG_FUNCTION => tag = aurora_core::module::ExportTag::Function,
@@ -475,7 +476,7 @@ impl WasmReader {
 
         for i in 0..size {
             vec.push(Global {
-                global_type: self.read_global_type(),
+                global_type: Rc::new(self.read_global_type()),
                 default: self.read_expression().0
             });
         }
@@ -579,7 +580,7 @@ impl WasmReader {
         }
 
         let mut custom_secs: Vec<CustomSection> = Vec::new();
-        let mut type_secs: Vec<FunctionType> = Vec::new();
+        let mut type_secs: Vec<Rc<FunctionType>> = Vec::new();
         let mut import_secs: Vec<Import> = Vec::new();
         let mut function_secs: Vec<u32> = Vec::new();
         let mut table_secs: Vec<TableType> = Vec::new();

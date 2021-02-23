@@ -7,8 +7,10 @@ pub struct LocalGetInst {
 }
 
 impl Instruction for LocalGetInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn execute(&self, vm: &mut VirtualMachine) {
+        let idx = vm.operand_stack.local_0_index + (self.local_index as usize);
+        let val = vm.operand_stack.get(idx);
+        vm.operand_stack.push_u64(val);
     }
 }
 
@@ -17,8 +19,10 @@ pub struct LocalSetInst {
 }
 
 impl Instruction for LocalSetInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn execute(&self, vm: &mut VirtualMachine) {
+        let idx = vm.operand_stack.local_0_index + (self.local_index as usize);
+        let val = vm.operand_stack.pop_u64();
+        vm.operand_stack.set(idx, val);
     }
 }
 
@@ -27,8 +31,10 @@ pub struct LocalTeeInst {
 }
 
 impl Instruction for LocalTeeInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn execute(&self, vm: &mut VirtualMachine) {
+        let idx = vm.operand_stack.local_0_index + (self.local_index as usize);
+        let val = vm.operand_stack.top();
+        vm.operand_stack.set(idx, val);
     }
 }
 
@@ -37,8 +43,9 @@ pub struct GlobalGetInst {
 }
 
 impl Instruction for GlobalGetInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn execute(&self, vm: &mut VirtualMachine) {
+        let val = vm.global_table.get_u64(self.global_index as usize);
+        vm.operand_stack.push_u64(val);
     }
 }
 
@@ -47,7 +54,8 @@ pub struct GlobalSetInst {
 }
 
 impl Instruction for GlobalSetInst {
-    fn Execute(&self, vm: &mut VirtualMachine) {
-        // todo UNIMPLEMENTED
+    fn execute(&self, vm: &mut VirtualMachine) {
+        let val = vm.operand_stack.pop_u64();
+        vm.global_table.set_u64(self.global_index as usize, val);
     }
 }

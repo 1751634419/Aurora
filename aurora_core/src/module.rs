@@ -1,9 +1,10 @@
 use crate::instr::inst::Expression;
+use std::rc::Rc;
 
 pub struct Module {
     pub version: u32,
     pub custom_sections: Vec<CustomSection>,
-    pub type_section: Vec<FunctionType>,
+    pub type_section: Vec<Rc<FunctionType>>,
     pub import_section: Vec<Import>,
     pub func_section: Vec<TypeIndex>,
     pub table_section: Vec<TableType>,
@@ -76,7 +77,7 @@ pub struct TableType {
 pub type MemoryType = Limits;
 
 pub struct Global {
-    pub global_type: GlobalType,
+    pub global_type: Rc<GlobalType>,
     pub default: Expression
 }
 
